@@ -1,0 +1,49 @@
+node ('nodejs'){
+    stage('Clone') {
+      echo "1.Clone Stage"
+      git branch: 'test', credentialsId: 'gitlab', url: 'http://221.0.92.21:38182/chenguanchi/rayup-center-ui.git'
+      script {
+          build_tag = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+      }
+      sh "echo gitlab-lable:${build_tag} "
+    }
+    stage('Nodejs') {
+      echo "2.Test Stage"
+      sh '''if [ ! -L "/usr/local/bin/node" ];then
+        ln -s /home/node1416/bin/node /usr/local/bin/
+        ln -s /home/node1416/bin/npm /usr/local/bin/
+            else
+        echo "exist"
+            fi'''
+      sh "ls"
+      sh "npm install --registry=https://registry.npmmirror.com"
+      sh "npm run build:stage"
+    }
+    stage('Build') {
+      echo "3.Build Stage"
+      sh "ls"
+      sh "mkdir -p tmp/demo"
+      sh "mv /home/jenkins/workspace/rayup-center-ui/dist tmp/demo/"
+      sh "ls"
+      sh "docker build -t rayup-center-ui:${build_tag} . "
+      sh "docker images |grep rayup-center-ui"
+    }
+    stage("YAML") {
+      echo "5.Change Yaml"
+      sh "sed -i 's/pom-version/${build_tag}/' rayup-web.yaml"
+    }
+    stage('Deploy') {
+      echo "6. Deploy Stage"
+      sh 'kubectl apply -f rayup-web.yaml'
+      sh 'kubectl delete -f rayup-web.yaml'
+      sh 'kubectl apply -f rayup-web.yaml'
+    }
+    stage('Clean') {
+      sh '''if [ $(docker images |grep iot-web|sed -n \'3,$p\'|wc -l) -gt 0 ];then
+        echo "Target Image > 0 Run Delete images ";
+        docker rmi `docker images --format "{{.Repository}}:{{.Tag}}" |grep iot-web|sed -n \'3,$p\'`;
+        else
+          echo "No Image need Clean.";
+        fi'''
+    }
+}

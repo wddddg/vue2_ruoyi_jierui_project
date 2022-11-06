@@ -1,0 +1,30 @@
+node ('nodejs'){
+    stage('Clone') {
+      echo "1.Clone Stage"
+      git branch: 'pro', credentialsId: 'aa3a320b-3f7a-415e-8db1-43d682489243', url: 'http://10.1.17.178:5000/chenguanchi/rayup-center-ui.git'
+      script {
+          build_tag = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+      }
+      sh "echo gitlab-lable:${build_tag} "
+    }
+    stage('Nodejs') {
+      echo "2.Test Stage"
+      sh '''if [ ! -L "/usr/local/bin/node" ];then
+        ln -s /home/node1416/bin/node /usr/local/bin/
+        ln -s /home/node1416/bin/npm /usr/local/bin/
+            else
+        echo "exist"
+            fi'''
+      sh "ls"
+      sh "npm install --registry=https://registry.npmmirror.com"
+      sh "npm run build:prod"
+    }
+    stage('Build') {
+      echo "3.Build Stage"
+      sh "mkdir -p /home/nfs/apps/rayup/rayup-center-ui/rayup-center"
+      sh '''if [ -d /home/nfs/apps/rayup/rayup-center-ui/rayup-center/dist ];then
+          rm -rf /home/nfs/apps/rayup/rayup-center-ui/rayup-center/dist
+      fi'''
+      sh "mv /home/jenkins/workspace/rayup-center-ui/dist /home/nfs/apps/rayup/rayup-center-ui/rayup-center/"
+    }
+}

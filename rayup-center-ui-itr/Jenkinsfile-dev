@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    stages {
+        stage('拉取代码') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/dev']], extensions: [], userRemoteConfigs: [[credentialsId: 'c8c1a4fb-06b0-41cc-83c0-80faa9964c2b', url: 'http://10.1.17.178:5000/chenguanchi/rayup-center-ui.git']]])
+            }
+        }
+        stage('构建打包') {
+            steps {
+                script {
+                    sh """
+                    npm install
+                    npm run build:dev
+                    """
+                }
+
+            }
+        }
+        stage('发布静态资源') {
+            steps {
+                script {
+                  sh """
+                    ssh -o StrictHostKeyChecking=no 10.1.7.141 "mkdir -p /zlx/nfs/data/nginx-webview/rayup-center-ui && rm -rf /zlx/nfs/data/nginx-webview/rayup-center-ui/*"
+                    scp -r -o StrictHostKeyChecking=no dist 10.1.7.141:/zlx/nfs/data/nginx-webview/rayup-center-ui/
+                  """
+                }
+            }
+        }
+    }
+}

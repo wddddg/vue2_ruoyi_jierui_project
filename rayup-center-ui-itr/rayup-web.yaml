@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rayup-center-ui
+  namespace: rayup
+  labels:
+    app: rayup-center-ui
+spec:
+  selector:
+    app: rayup-center-ui
+  type: NodePort
+  ports:
+  - name: web
+    port: 31358
+    targetPort: 31358
+    nodePort: 31358
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rayup-center-ui
+  namespace: rayup
+spec:
+  selector:
+    matchLabels:
+      app: rayup-center-ui
+  template:
+    metadata:
+      labels:
+        app: rayup-center-ui
+    spec:
+      nodeName: ctiotk8smaster
+      containers:
+      - name: rayup-center-ui
+        image: rayup-center-ui:pom-version
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 31358
+          name: web
+          protocol: TCP
